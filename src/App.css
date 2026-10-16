@@ -1,0 +1,58 @@
+:root {
+  --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Inter", sans-serif;
+  --radius: 10px;
+  --t: 120ms ease;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0b0c; --surface: #131315; --surface-2: #1c1c1f; --border: #27272b;
+  --text: #ededee; --muted: #9a9aa2; --focus: #8ab4ff; --danger: #ff8a80;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f6f7; --surface: #ffffff; --surface-2: #eeeef0; --border: #e0e0e4;
+  --text: #151517; --muted: #5f5f68; --focus: #1d4ed8; --danger: #b3261e;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; }
+h1 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+p { margin: 0 0 8px; line-height: 1.5; }
+.muted { color: var(--muted); }
+.error { color: var(--danger); }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: 232px 1fr; height: 100%; }
+
+.sidebar {
+  display: flex; flex-direction: column; gap: 8px; padding: 16px 12px;
+  background: var(--surface); border-right: 1px solid var(--border);
+}
+.sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600; font-size: 16px; padding: 4px 10px 16px;
+}
+.brand-mark { width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--text); }
+nav { flex: 1; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 9px 10px; border: 0; border-radius: 8px; cursor: pointer;
+  background: transparent; color: var(--muted); font: inherit; text-align: left;
+  transition: background var(--t), color var(--t);
+}
+.nav-item:hover { background: var(--surface-2); color: var(--text); }
+.nav-item[aria-current="page"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
+
+.content { overflow-y: auto; padding: 32px 40px; }
+.panel {
+  margin-top: 20px; padding: 20px; max-width: 640px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.panel.empty { text-align: center; padding: 48px 20px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["src-tauri", "crates/focusos-core"]
+# `cargo test` at the root only runs the Tauri-free core crate.
+default-members = ["crates/focusos-core"]
+
+# Lower dev-build memory/link time on modest hardware.
+[profile.dev]
+debug = "line-tables-only"

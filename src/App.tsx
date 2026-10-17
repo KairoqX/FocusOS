@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { getAppInfo, type AppInfo } from "./api";
 import { NAV, Sidebar, type View } from "./components/Sidebar";
 import { useTheme } from "./useTheme";
+import { TasksView } from "./views/TasksView";
 import "./App.css";
 
-const MILESTONE: Record<Exclude<View, "dashboard">, string> = {
-  tasks: "Milestone 2",
+const MILESTONE: Record<Exclude<View, "dashboard" | "tasks">, string> = {
   subjects: "Milestone 3",
   focus: "Milestone 4",
   insights: "Milestone 5",
@@ -33,6 +33,11 @@ function Dashboard() {
         {info && (
           <p>
             {info.name} v{info.version} running natively on {info.os} ({info.arch}).
+          </p>
+        )}
+        {info && (
+          <p className="muted">
+            Database schema v{info.schemaVersion} · {info.dbPath}
           </p>
         )}
       </section>
@@ -75,9 +80,9 @@ export default function App() {
     <div className="app">
       <Sidebar active={view} onSelect={setView} theme={theme} onToggleTheme={toggle} />
       <main className="content">
-        {view === "dashboard" ? (
-          <Dashboard />
-        ) : (
+        {view === "dashboard" && <Dashboard />}
+        {view === "tasks" && <TasksView />}
+        {view !== "dashboard" && view !== "tasks" && (
           <Placeholder title={label} milestone={MILESTONE[view]} />
         )}
       </main>

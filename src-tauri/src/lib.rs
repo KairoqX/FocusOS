@@ -1,29 +1,30 @@
-use serde::Serialize;
+mod commands;
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AppInfo {
-    name: &'static str,
-    version: &'static str,
-    os: &'static str,
-    arch: &'static str,
-}
-
-#[tauri::command]
-fn get_app_info() -> AppInfo {
-    AppInfo {
-        name: "FocusOS",
-        version: env!("CARGO_PKG_VERSION"),
-        os: std::env::consts::OS,
-        arch: std::env::consts::ARCH,
-    }
-}
+use focusos_core::db;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Failing to start the runtime at launch is unrecoverable, so expect() is acceptable here.
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_app_info])
+        .setup(|app| {
+            // Per-user app-data directory (portable across Windows/Linux/macOS).
+            let dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&dir)?;
+            let path = dir.join("focusos.db");
+            let conn = db::open(&path)?;
+            app.manage(db::Db::new(conn, path));
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::get_app_info,
+            commands::list_tasks,
+            commands::create_task,
+            commands::update_task,
+            commands::delete_task,
+            commands::set_task_completed,
+            commands::list_subjects,
+        ])
         .run(tauri::generate_context!())
+        // Failing to start the runtime at launch is unrecoverable.
         .expect("failed to start FocusOS");
 }

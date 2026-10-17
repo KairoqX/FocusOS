@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 export type Theme = "dark" | "light";
-const KEY = "focusos.theme";
+const KEY = "kaze.theme";
 
 function readInitial(): Theme {
   try {

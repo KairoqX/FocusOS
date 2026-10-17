@@ -1,9 +1,11 @@
-//! Thin Tauri command layer. All logic lives in `focusos-core`.
+//! Thin Tauri command layer. All logic lives in `kaze-core`.
 
-use focusos_core::db::{self, Db};
-use focusos_core::error::AppError;
-use focusos_core::models::{Subject, Task, TaskInput, TaskQuery};
-use focusos_core::{subjects, tasks};
+use kaze_core::db::{self, Db};
+use kaze_core::error::AppError;
+use kaze_core::models::{
+    Chapter, ChapterInput, ChapterStatus, Subject, SubjectInput, Task, TaskInput, TaskQuery,
+};
+use kaze_core::{chapters, subjects, tasks};
 use serde::Serialize;
 use tauri::State;
 
@@ -22,7 +24,7 @@ pub struct AppInfo {
 pub fn get_app_info(db: State<'_, Db>) -> Result<AppInfo, AppError> {
     let schema_version = db.with(db::schema_version)?;
     Ok(AppInfo {
-        name: "FocusOS",
+        name: "Kaze Study",
         version: env!("CARGO_PKG_VERSION"),
         os: std::env::consts::OS,
         arch: std::env::consts::ARCH,
@@ -71,4 +73,60 @@ pub fn set_task_completed(db: State<'_, Db>, id: i64, completed: bool) -> Result
 #[tauri::command]
 pub fn list_subjects(db: State<'_, Db>) -> Result<Vec<Subject>, AppError> {
     db.with(subjects::list)
+}
+
+#[tauri::command]
+pub fn create_subject(db: State<'_, Db>, input: SubjectInput) -> Result<Subject, AppError> {
+    db.with(|conn| subjects::create(conn, &input))
+}
+
+#[tauri::command]
+pub fn update_subject(
+    db: State<'_, Db>,
+    id: i64,
+    input: SubjectInput,
+) -> Result<Subject, AppError> {
+    db.with(|conn| subjects::update(conn, id, &input))
+}
+
+#[tauri::command]
+pub fn delete_subject(db: State<'_, Db>, id: i64) -> Result<(), AppError> {
+    db.with(|conn| subjects::delete(conn, id))
+}
+
+#[tauri::command]
+pub fn list_chapters(db: State<'_, Db>, subject_id: i64) -> Result<Vec<Chapter>, AppError> {
+    db.with(|conn| chapters::list(conn, subject_id))
+}
+
+#[tauri::command]
+pub fn create_chapter(
+    db: State<'_, Db>,
+    subject_id: i64,
+    input: ChapterInput,
+) -> Result<Chapter, AppError> {
+    db.with(|conn| chapters::create(conn, subject_id, &input))
+}
+
+#[tauri::command]
+pub fn update_chapter(
+    db: State<'_, Db>,
+    id: i64,
+    input: ChapterInput,
+) -> Result<Chapter, AppError> {
+    db.with(|conn| chapters::update(conn, id, &input))
+}
+
+#[tauri::command]
+pub fn update_chapter_status(
+    db: State<'_, Db>,
+    id: i64,
+    status: ChapterStatus,
+) -> Result<Chapter, AppError> {
+    db.with(|conn| chapters::set_status(conn, id, status))
+}
+
+#[tauri::command]
+pub fn delete_chapter(db: State<'_, Db>, id: i64) -> Result<(), AppError> {
+    db.with(|conn| chapters::delete(conn, id))
 }

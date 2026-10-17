@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { getAppInfo, type AppInfo } from "./api";
 import { NAV, Sidebar, type View } from "./components/Sidebar";
 import { useTheme } from "./useTheme";
+import { SubjectsView } from "./views/SubjectsView";
 import { TasksView } from "./views/TasksView";
 import "./App.css";
 
-const MILESTONE: Record<Exclude<View, "dashboard" | "tasks">, string> = {
-  subjects: "Milestone 3",
+const MILESTONE: Record<Exclude<View, "dashboard" | "tasks" | "subjects">, string> = {
   focus: "Milestone 4",
   insights: "Milestone 5",
   settings: "Milestone 5",
@@ -82,7 +82,8 @@ export default function App() {
       <main className="content">
         {view === "dashboard" && <Dashboard />}
         {view === "tasks" && <TasksView />}
-        {view !== "dashboard" && view !== "tasks" && (
+        {view === "subjects" && <SubjectsView />}
+        {view !== "dashboard" && view !== "tasks" && view !== "subjects" && (
           <Placeholder title={label} milestone={MILESTONE[view]} />
         )}
       </main>

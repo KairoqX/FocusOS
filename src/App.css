@@ -132,4 +132,38 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, 0.55); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field-error { margin: 0; color: var(--danger); font-size: 12.5px; }
 
+
+.progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.progress-fill { height: 100%; background: var(--text); border-radius: inherit; transition: width var(--t); }
+
+.subjects-layout { display: grid; grid-template-columns: minmax(200px, 260px) 1fr; gap: 20px; align-items: start; max-width: 1000px; }
+.subject-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.subject-card { display: grid; gap: 8px; width: 100%; padding: 12px 14px; text-align: left; cursor: pointer;
+  font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); transition: background var(--t), border-color var(--t); }
+.subject-card:hover { background: var(--surface-2); }
+.subject-card[aria-current="true"] { border-color: var(--text); background: var(--surface-2); }
+.subject-name { font-weight: 600; overflow-wrap: anywhere; }
+.subject-sub { font-size: 12.5px; }
+
+.subject-detail { padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.detail-head h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; }
+.detail-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.summary { display: flex; gap: 18px; align-items: center; margin-bottom: 20px; }
+.summary-percent { font-size: 36px; font-weight: 600; min-width: 84px; font-variant-numeric: tabular-nums; }
+.summary-main { flex: 1; min-width: 0; }
+.summary-main p { margin: 6px 0 0; }
+.breakdown { font-size: 12.5px; }
+
+.add-chapter { margin-bottom: 12px; }
+.add-chapter-row { display: flex; gap: 8px; }
+.add-chapter-row input { flex: 1; }
+.chapter-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.chapter { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+.chapter-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.chapter.status-completed .chapter-title { color: var(--muted); text-decoration: line-through; }
+.chapter.status-needsRevision { border-color: var(--text); }
+.empty-note { margin: 12px 0 0; }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

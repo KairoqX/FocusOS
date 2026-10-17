@@ -1,6 +1,6 @@
 mod commands;
 
-use focusos_core::db;
+use kaze_core::db;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -10,6 +10,8 @@ pub fn run() {
             // Per-user app-data directory (portable across Windows/Linux/macOS).
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
+            // Internal names (identifier, file name) intentionally predate the "Kaze Study" rename:
+            // changing them would move the data folder and orphan existing user data.
             let path = dir.join("focusos.db");
             let conn = db::open(&path)?;
             app.manage(db::Db::new(conn, path));
@@ -23,8 +25,16 @@ pub fn run() {
             commands::delete_task,
             commands::set_task_completed,
             commands::list_subjects,
+            commands::create_subject,
+            commands::update_subject,
+            commands::delete_subject,
+            commands::list_chapters,
+            commands::create_chapter,
+            commands::update_chapter,
+            commands::update_chapter_status,
+            commands::delete_chapter,
         ])
         .run(tauri::generate_context!())
         // Failing to start the runtime at launch is unrecoverable.
-        .expect("failed to start FocusOS");
+        .expect("failed to start Kaze Study");
 }

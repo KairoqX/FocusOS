@@ -49,6 +49,25 @@ export interface TaskQuery {
 export interface Subject {
   id: number;
   name: string;
+  chapterCount: number;
+  notStarted: number;
+  inProgress: number;
+  completed: number;
+  needsRevision: number;
+  percentComplete: number; // computed in Rust from chapter records
+  taskCount: number;
+  openTasks: number;
+}
+
+export type ChapterStatus = "notStarted" | "inProgress" | "completed" | "needsRevision";
+
+export interface Chapter {
+  id: number;
+  subjectId: number;
+  title: string;
+  status: ChapterStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type ErrorKind = "validation" | "notFound" | "database" | "internal";
@@ -111,3 +130,18 @@ export const deleteTask = (id: number) => call<void>("delete_task", { id });
 export const setTaskCompleted = (id: number, completed: boolean) =>
   call<Task>("set_task_completed", { id, completed });
 export const listSubjects = () => call<Subject[]>("list_subjects");
+export const createSubject = (name: string) =>
+  call<Subject>("create_subject", { input: { name } });
+export const updateSubject = (id: number, name: string) =>
+  call<Subject>("update_subject", { id, input: { name } });
+export const deleteSubject = (id: number) => call<void>("delete_subject", { id });
+
+export const listChapters = (subjectId: number) =>
+  call<Chapter[]>("list_chapters", { subjectId });
+export const createChapter = (subjectId: number, title: string) =>
+  call<Chapter>("create_chapter", { subjectId, input: { title } });
+export const updateChapter = (id: number, title: string) =>
+  call<Chapter>("update_chapter", { id, input: { title } });
+export const updateChapterStatus = (id: number, status: ChapterStatus) =>
+  call<Chapter>("update_chapter_status", { id, status });
+export const deleteChapter = (id: number) => call<void>("delete_chapter", { id });

@@ -28,7 +28,7 @@ export function Sidebar({ active, onSelect, theme, onToggleTheme }: Props) {
     <aside className="sidebar">
       <div className="brand">
         <img className="brand-icon" src="/app-icon.png" alt="" width={24} height={24} />
-        FocusOS
+        Kaze Study
       </div>
       <nav aria-label="Primary">
         <ul>

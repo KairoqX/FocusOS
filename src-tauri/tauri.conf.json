@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "FocusOS",
+  "productName": "Kaze Study",
   "version": "0.1.0",
   "identifier": "com.example.focusos",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "FocusOS",
+        "title": "Kaze Study",
         "width": 1120,
         "height": 720,
         "minWidth": 900,

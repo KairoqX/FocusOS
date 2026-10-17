@@ -15,6 +15,10 @@ export function formatMinutes(total: number): string {
   return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
 
+export function plural(n: number, singular: string, pluralForm = `${singular}s`): string {
+  return `${n} ${n === 1 ? singular : pluralForm}`;
+}
+
 export function messageOf(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }

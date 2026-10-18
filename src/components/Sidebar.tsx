@@ -3,6 +3,7 @@ import {
   Moon, Settings, Sun, Timer, type LucideIcon,
 } from "lucide-react";
 import type { Theme } from "../useTheme";
+import { NavTimer } from "./NavTimer";
 
 export type View =
   | "dashboard" | "tasks" | "subjects" | "focus" | "insights" | "settings";
@@ -42,6 +43,7 @@ export function Sidebar({ active, onSelect, theme, onToggleTheme }: Props) {
               >
                 <Icon size={18} aria-hidden="true" />
                 {label}
+                {id === "focus" && <NavTimer />}
               </button>
             </li>
           ))}

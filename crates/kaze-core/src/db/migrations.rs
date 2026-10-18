@@ -26,6 +26,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "task_chapters_progress",
         sql: include_str!("../../migrations/0003_task_chapters_progress.sql"),
     },
+    Migration {
+        version: 4,
+        name: "focus_sessions",
+        sql: include_str!("../../migrations/0004_focus_sessions.sql"),
+    },
 ];
 
 pub fn latest_version() -> i64 {

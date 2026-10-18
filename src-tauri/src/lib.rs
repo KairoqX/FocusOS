@@ -34,6 +34,17 @@ pub fn run() {
             commands::update_chapter_status,
             commands::update_chapter_progress,
             commands::delete_chapter,
+            commands::get_focus_state,
+            commands::focus_heartbeat,
+            commands::start_focus_session,
+            commands::pause_focus_session,
+            commands::resume_focus_session,
+            commands::complete_focus_session,
+            commands::stop_focus_session,
+            commands::reset_focus_session,
+            commands::list_focus_sessions,
+            commands::get_timer_settings,
+            commands::update_timer_settings,
         ])
         .run(tauri::generate_context!())
         // Failing to start the runtime at launch is unrecoverable.

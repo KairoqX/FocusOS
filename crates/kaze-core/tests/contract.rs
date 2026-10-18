@@ -218,3 +218,82 @@ fn task_input_accepts_chapter_id() {
         serde_json::from_value(json!({"title": "x", "priority": "low"})).unwrap();
     assert_eq!(legacy.chapter_id, None);
 }
+
+#[test]
+fn focus_timer_wire_format() {
+    use kaze_core::models::{
+        FocusHistory, FocusSession, SessionKind, SessionState, StartSessionInput, TimerSettings,
+        TimerSnapshot,
+    };
+    let session = FocusSession {
+        id: 1,
+        kind: SessionKind::Focus,
+        state: SessionState::Paused,
+        planned_ms: 1_500_000,
+        elapsed_ms: 60_000,
+        remaining_ms: 1_440_000,
+        started_at_ms: 10,
+        ended_at_ms: None,
+        auto_paused: true,
+        task_id: Some(2),
+        task_title: Some("t".into()),
+        subject_id: None,
+        subject_name: None,
+    };
+    let v = serde_json::to_value(&session).unwrap();
+    for key in [
+        "plannedMs",
+        "elapsedMs",
+        "remainingMs",
+        "startedAtMs",
+        "endedAtMs",
+        "autoPaused",
+        "taskId",
+        "taskTitle",
+        "subjectId",
+        "subjectName",
+    ] {
+        assert!(v.get(key).is_some(), "missing key {key}");
+    }
+    assert_eq!(
+        (v["kind"].clone(), v["state"].clone()),
+        (json!("focus"), json!("paused"))
+    );
+
+    let snap = TimerSnapshot {
+        active: Some(session.clone()),
+        finished: None,
+        now_ms: 99,
+    };
+    let v = serde_json::to_value(&snap).unwrap();
+    assert!(v["active"].is_object() && v["finished"].is_null() && v["nowMs"] == 99);
+
+    let h = FocusHistory {
+        sessions: vec![session],
+        today_focus_ms: 5,
+        today_sessions: 1,
+    };
+    let v = serde_json::to_value(&h).unwrap();
+    assert_eq!(
+        (v["todayFocusMs"].clone(), v["todaySessions"].clone()),
+        (json!(5), json!(1))
+    );
+
+    let i: StartSessionInput = serde_json::from_value(json!({"kind": "break"})).unwrap();
+    assert_eq!((i.kind, i.task_id), (SessionKind::Break, None));
+    let i: StartSessionInput =
+        serde_json::from_value(json!({"kind": "focus", "taskId": 4})).unwrap();
+    assert_eq!(i.task_id, Some(4));
+    assert!(serde_json::from_value::<StartSessionInput>(json!({"kind": "nap"})).is_err());
+
+    let s: TimerSettings =
+        serde_json::from_value(json!({"focusMinutes": 30, "breakMinutes": 6})).unwrap();
+    assert_eq!((s.focus_minutes, s.break_minutes), (30, 6));
+    assert_eq!(
+        serde_json::to_value(s).unwrap(),
+        json!({"focusMinutes": 30, "breakMinutes": 6})
+    );
+
+    let v = serde_json::to_value(AppError::conflict("busy")).unwrap();
+    assert_eq!(v, json!({"kind": "conflict", "message": "busy"}));
+}

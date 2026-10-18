@@ -3,10 +3,10 @@
 use kaze_core::db::{self, Db};
 use kaze_core::error::AppError;
 use kaze_core::models::{
-    Chapter, ChapterInput, ChapterProgressInput, ChapterStatus, Subject, SubjectInput, Task,
-    TaskInput, TaskQuery,
+    Chapter, ChapterInput, ChapterProgressInput, ChapterStatus, FocusHistory, StartSessionInput,
+    Subject, SubjectInput, Task, TaskInput, TaskQuery, TimerSettings, TimerSnapshot,
 };
-use kaze_core::{chapters, subjects, tasks};
+use kaze_core::{chapters, focus, settings, subjects, tasks};
 use serde::Serialize;
 use tauri::State;
 
@@ -139,4 +139,73 @@ pub fn update_chapter_progress(
 #[tauri::command]
 pub fn delete_chapter(db: State<'_, Db>, id: i64) -> Result<(), AppError> {
     db.with(|conn| chapters::delete(conn, id))
+}
+
+// ----- Focus timer. The wall clock is read here; all logic lives in `kaze-core`. -----
+
+#[tauri::command]
+pub fn get_focus_state(db: State<'_, Db>) -> Result<TimerSnapshot, AppError> {
+    db.with(|conn| focus::status(conn, focus::system_now_ms()?))
+}
+
+#[tauri::command]
+pub fn focus_heartbeat(db: State<'_, Db>) -> Result<TimerSnapshot, AppError> {
+    db.with(|conn| focus::heartbeat(conn, focus::system_now_ms()?))
+}
+
+#[tauri::command]
+pub fn start_focus_session(
+    db: State<'_, Db>,
+    input: StartSessionInput,
+) -> Result<TimerSnapshot, AppError> {
+    db.with(|conn| focus::start(conn, &input, focus::system_now_ms()?))
+}
+
+#[tauri::command]
+pub fn pause_focus_session(db: State<'_, Db>, id: i64) -> Result<TimerSnapshot, AppError> {
+    db.with(|conn| focus::pause(conn, id, focus::system_now_ms()?))
+}
+
+#[tauri::command]
+pub fn resume_focus_session(db: State<'_, Db>, id: i64) -> Result<TimerSnapshot, AppError> {
+    db.with(|conn| focus::resume(conn, id, focus::system_now_ms()?))
+}
+
+#[tauri::command]
+pub fn complete_focus_session(db: State<'_, Db>, id: i64) -> Result<TimerSnapshot, AppError> {
+    db.with(|conn| focus::complete(conn, id, focus::system_now_ms()?))
+}
+
+#[tauri::command]
+pub fn stop_focus_session(db: State<'_, Db>, id: i64) -> Result<TimerSnapshot, AppError> {
+    db.with(|conn| focus::stop(conn, id, focus::system_now_ms()?))
+}
+
+#[tauri::command]
+pub fn reset_focus_session(db: State<'_, Db>, id: i64) -> Result<TimerSnapshot, AppError> {
+    db.with(|conn| focus::reset(conn, id, focus::system_now_ms()?))
+}
+
+#[tauri::command]
+pub fn list_focus_sessions(
+    db: State<'_, Db>,
+    limit: Option<u32>,
+) -> Result<FocusHistory, AppError> {
+    db.with(|conn| {
+        let today = db::local_today(conn)?;
+        focus::history(conn, limit.unwrap_or(30), &today, focus::system_now_ms()?)
+    })
+}
+
+#[tauri::command]
+pub fn get_timer_settings(db: State<'_, Db>) -> Result<TimerSettings, AppError> {
+    db.with(settings::get_timer)
+}
+
+#[tauri::command]
+pub fn update_timer_settings(
+    db: State<'_, Db>,
+    input: TimerSettings,
+) -> Result<TimerSettings, AppError> {
+    db.with(|conn| settings::set_timer(conn, &input))
 }

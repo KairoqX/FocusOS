@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { getAppInfo, type AppInfo } from "./api";
 import { NAV, Sidebar, type View } from "./components/Sidebar";
+import { FocusProvider } from "./focus/FocusContext";
 import { useTheme } from "./useTheme";
+import { FocusView } from "./views/FocusView";
 import { SubjectsView } from "./views/SubjectsView";
 import { TasksView } from "./views/TasksView";
 import "./App.css";
 
-const MILESTONE: Record<Exclude<View, "dashboard" | "tasks" | "subjects">, string> = {
-  focus: "Milestone 4",
+const MILESTONE: Record<Exclude<View, "dashboard" | "tasks" | "subjects" | "focus">, string> = {
   insights: "Milestone 5",
   settings: "Milestone 5",
 };
@@ -77,16 +78,19 @@ export default function App() {
   const label = NAV.find((n) => n.id === view)?.label ?? "";
 
   return (
+    <FocusProvider>
     <div className="app">
       <Sidebar active={view} onSelect={setView} theme={theme} onToggleTheme={toggle} />
       <main className="content">
         {view === "dashboard" && <Dashboard />}
         {view === "tasks" && <TasksView />}
         {view === "subjects" && <SubjectsView />}
-        {view !== "dashboard" && view !== "tasks" && view !== "subjects" && (
+        {view === "focus" && <FocusView />}
+        {view !== "dashboard" && view !== "tasks" && view !== "subjects" && view !== "focus" && (
           <Placeholder title={label} milestone={MILESTONE[view]} />
         )}
       </main>
     </div>
+    </FocusProvider>
   );
 }

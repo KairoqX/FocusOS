@@ -13,6 +13,10 @@ pub enum AppError {
         entity: &'static str,
         id: i64,
     },
+    /// The action is not allowed in the current state (e.g. a session is already running).
+    Conflict {
+        message: String,
+    },
     Database {
         message: String,
     },
@@ -35,6 +39,12 @@ impl AppError {
         AppError::NotFound { entity, id }
     }
 
+    pub fn conflict(message: impl Into<String>) -> Self {
+        AppError::Conflict {
+            message: message.into(),
+        }
+    }
+
     pub fn internal(message: impl Into<String>) -> Self {
         AppError::Internal {
             message: message.into(),
@@ -47,6 +57,7 @@ impl fmt::Display for AppError {
         match self {
             AppError::Validation { field, message } => write!(f, "invalid {field}: {message}"),
             AppError::NotFound { entity, id } => write!(f, "{entity} {id} not found"),
+            AppError::Conflict { message } => write!(f, "conflict: {message}"),
             AppError::Database { message } => write!(f, "database error: {message}"),
             AppError::Internal { message } => write!(f, "internal error: {message}"),
         }

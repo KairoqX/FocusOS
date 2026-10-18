@@ -55,3 +55,28 @@ export function task(over: Partial<Task> = {}): Task {
     ...over,
   };
 }
+
+import type { FocusSession, TimerSnapshot } from "../api";
+
+export function session(over: Partial<FocusSession> = {}): FocusSession {
+  return {
+    id: 1,
+    kind: "focus",
+    state: "running",
+    plannedMs: 25 * 60_000,
+    elapsedMs: 0,
+    remainingMs: 25 * 60_000,
+    startedAtMs: 1_700_000_000_000,
+    endedAtMs: null,
+    autoPaused: false,
+    taskId: null,
+    taskTitle: null,
+    subjectId: null,
+    subjectName: null,
+    ...over,
+  };
+}
+
+export function snapshot(active: FocusSession | null, finished: FocusSession | null = null): TimerSnapshot {
+  return { active, finished, nowMs: 1_700_000_000_000 };
+}

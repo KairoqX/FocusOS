@@ -19,6 +19,8 @@ fn fresh_database_is_migrated_to_latest() {
     assert!(table_exists(&conn, "tasks"));
     assert!(table_exists(&conn, "subjects"));
     assert!(table_exists(&conn, "chapters"));
+    assert!(table_exists(&conn, "focus_sessions"));
+    assert!(table_exists(&conn, "app_settings"));
 }
 
 #[test]
@@ -162,4 +164,51 @@ fn upgrading_a_v2_database_preserves_everything_and_defaults_to_automatic() {
 
     let mut stmt = conn.prepare("PRAGMA foreign_key_check").unwrap();
     assert!(stmt.query([]).unwrap().next().unwrap().is_none());
+}
+
+#[test]
+fn upgrading_a_v3_database_keeps_data_and_adds_the_timer_tables() {
+    let mut conn = Connection::open_in_memory().unwrap();
+    conn.execute_batch("PRAGMA foreign_keys = ON").unwrap();
+    for sql in [
+        include_str!("../migrations/0001_init.sql"),
+        include_str!("../migrations/0002_chapters.sql"),
+        include_str!("../migrations/0003_task_chapters_progress.sql"),
+    ] {
+        conn.execute_batch(sql).unwrap();
+    }
+    conn.execute_batch("PRAGMA user_version = 3").unwrap();
+    conn.execute("INSERT INTO subjects (name) VALUES ('Bio')", [])
+        .unwrap();
+    conn.execute(
+        "INSERT INTO chapters (subject_id, title) VALUES (1, 'Cells')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO tasks (title, subject_id, chapter_id) VALUES ('t', 1, 1)",
+        [],
+    )
+    .unwrap();
+
+    db::run_migrations(&mut conn).unwrap();
+
+    assert_eq!(db::schema_version(&conn).unwrap(), db::latest_version());
+    assert!(table_exists(&conn, "focus_sessions") && table_exists(&conn, "app_settings"));
+    let (t, c): (i64, i64) = conn
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM tasks), (SELECT COUNT(*) FROM chapters)",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((t, c), (1, 1));
+    let idx: bool = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_focus_single_active')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(idx);
 }

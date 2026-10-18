@@ -82,7 +82,43 @@ export interface Chapter {
   updatedAt: string;
 }
 
-export type ErrorKind = "validation" | "notFound" | "database" | "internal";
+export type SessionKind = "focus" | "break";
+export type SessionState = "running" | "paused" | "completed" | "stopped";
+
+export interface FocusSession {
+  id: number;
+  kind: SessionKind;
+  state: SessionState;
+  plannedMs: number;
+  elapsedMs: number; // derived by the backend at snapshot time
+  remainingMs: number; // 0 for finished sessions
+  startedAtMs: number;
+  endedAtMs: number | null;
+  autoPaused: boolean; // paused because the app was closed / the computer slept
+  taskId: number | null;
+  taskTitle: string | null;
+  subjectId: number | null;
+  subjectName: string | null;
+}
+
+export interface TimerSnapshot {
+  active: FocusSession | null;
+  finished: FocusSession | null; // set when this call finished (or re-reported) a session
+  nowMs: number;
+}
+
+export interface TimerSettings {
+  focusMinutes: number;
+  breakMinutes: number;
+}
+
+export interface FocusHistory {
+  sessions: FocusSession[];
+  todayFocusMs: number;
+  todaySessions: number;
+}
+
+export type ErrorKind = "validation" | "notFound" | "conflict" | "database" | "internal";
 
 export class ApiError extends Error {
   readonly kind: ErrorKind;
@@ -115,6 +151,8 @@ function toApiError(e: unknown): ApiError {
           "notFound",
           `That ${raw.entity ?? "item"} no longer exists. It may have been deleted.`,
         );
+      case "conflict":
+        return new ApiError("conflict", raw.message ?? "That action is not possible right now.");
       case "database":
         return new ApiError("database", raw.message ?? "Database error.");
       default:
@@ -162,3 +200,19 @@ export const updateChapterProgress = (
   manualProgress: number | null,
 ) => call<Chapter>("update_chapter_progress", { id, input: { mode, manualProgress } });
 export const deleteChapter = (id: number) => call<void>("delete_chapter", { id });
+
+export const getFocusState = () => call<TimerSnapshot>("get_focus_state");
+export const focusHeartbeat = () => call<TimerSnapshot>("focus_heartbeat");
+export const startFocusSession = (kind: SessionKind, taskId: number | null) =>
+  call<TimerSnapshot>("start_focus_session", { input: { kind, taskId } });
+export const pauseFocusSession = (id: number) => call<TimerSnapshot>("pause_focus_session", { id });
+export const resumeFocusSession = (id: number) => call<TimerSnapshot>("resume_focus_session", { id });
+export const completeFocusSession = (id: number) =>
+  call<TimerSnapshot>("complete_focus_session", { id });
+export const stopFocusSession = (id: number) => call<TimerSnapshot>("stop_focus_session", { id });
+export const resetFocusSession = (id: number) => call<TimerSnapshot>("reset_focus_session", { id });
+export const listFocusSessions = (limit = 30) =>
+  call<FocusHistory>("list_focus_sessions", { limit });
+export const getTimerSettings = () => call<TimerSettings>("get_timer_settings");
+export const updateTimerSettings = (input: TimerSettings) =>
+  call<TimerSettings>("update_timer_settings", { input });

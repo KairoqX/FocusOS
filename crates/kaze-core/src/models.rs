@@ -245,3 +245,126 @@ pub struct ChapterProgressInput {
     #[serde(default)]
     pub manual_progress: Option<i64>,
 }
+
+// ---------------------------------------------------------------------------------------------
+// Focus timer
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SessionKind {
+    Focus,
+    Break,
+}
+
+impl SessionKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SessionKind::Focus => "focus",
+            SessionKind::Break => "break",
+        }
+    }
+}
+
+impl FromSql for SessionKind {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value.as_str()? {
+            "focus" => Ok(SessionKind::Focus),
+            "break" => Ok(SessionKind::Break),
+            other => Err(FromSqlError::Other(
+                format!("unknown session kind '{other}'").into(),
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SessionState {
+    Running,
+    Paused,
+    Completed,
+    Stopped,
+}
+
+impl SessionState {
+    /// Running or paused: the (single) session the timer is currently tracking.
+    pub fn is_active(self) -> bool {
+        matches!(self, SessionState::Running | SessionState::Paused)
+    }
+}
+
+impl FromSql for SessionState {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value.as_str()? {
+            "running" => Ok(SessionState::Running),
+            "paused" => Ok(SessionState::Paused),
+            "completed" => Ok(SessionState::Completed),
+            "stopped" => Ok(SessionState::Stopped),
+            other => Err(FromSqlError::Other(
+                format!("unknown session state '{other}'").into(),
+            )),
+        }
+    }
+}
+
+/// A focus or break session. `elapsed_ms`/`remaining_ms` are derived at `TimerSnapshot::now_ms`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FocusSession {
+    pub id: i64,
+    pub kind: SessionKind,
+    pub state: SessionState,
+    pub planned_ms: i64,
+    pub elapsed_ms: i64,
+    /// Always 0 for finished sessions.
+    pub remaining_ms: i64,
+    /// UTC epoch milliseconds.
+    pub started_at_ms: i64,
+    pub ended_at_ms: Option<i64>,
+    /// True when the session was paused automatically because the app was closed or the
+    /// computer slept; time away is not counted.
+    pub auto_paused: bool,
+    pub task_id: Option<i64>,
+    pub task_title: Option<String>,
+    pub subject_id: Option<i64>,
+    pub subject_name: Option<String>,
+}
+
+/// What every timer command returns, so the UI never has to guess the current state.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimerSnapshot {
+    /// The running or paused session, if any.
+    pub active: Option<FocusSession>,
+    /// Set when this call finished (or re-reported) a session, so the UI can celebrate/record it.
+    pub finished: Option<FocusSession>,
+    /// Server time the elapsed/remaining values were computed at.
+    pub now_ms: i64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartSessionInput {
+    pub kind: SessionKind,
+    /// Optional open task to focus on (focus sessions only).
+    #[serde(default)]
+    pub task_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimerSettings {
+    pub focus_minutes: u32,
+    pub break_minutes: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FocusHistory {
+    /// Finished focus sessions, newest first.
+    pub sessions: Vec<FocusSession>,
+    /// Focus time and session count for sessions that started today (local date).
+    pub today_focus_ms: i64,
+    pub today_sessions: u32,
+}

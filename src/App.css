@@ -180,4 +180,33 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, 0.55); }
 .progress-note { margin: 0; font-size: 12.5px; }
 .field-hint { margin: 0; font-size: 12.5px; }
 
+.nav-timer { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; padding: 1px 7px;
+  border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 600; }
+.nav-timer-paused { background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 400; }
+
+.timer-card { max-width: 640px; padding: 28px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); display: grid; gap: 16px; justify-items: center; text-align: center; }
+.timer-headline { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+.timer-display { width: 100%; display: grid; gap: 14px; justify-items: center; }
+.clock { font-size: 76px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+.timer-display .progress { width: 100%; max-width: 420px; }
+.timer-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.timer-task { width: 100%; max-width: 420px; text-align: left; }
+.notice { margin: 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface-2); color: var(--text); font-size: 13px; text-align: left; max-width: 480px; }
+.finished { width: 100%; padding-top: 14px; border-top: 1px solid var(--border); display: grid; gap: 10px; justify-items: center; }
+.finished p { margin: 0; overflow-wrap: anywhere; }
+
+.settings-panel { max-width: 640px; }
+.settings-panel .modal-actions { align-items: center; margin-top: 4px; }
+
+.history { max-width: 640px; margin-top: 28px; }
+.history h2 { margin-bottom: 4px; }
+.history-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.history-row { display: grid; grid-template-columns: 130px 1fr auto; gap: 12px; align-items: baseline;
+  padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.history-when { color: var(--muted); font-size: 12.5px; }
+.history-main { overflow-wrap: anywhere; }
+.history-dur { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

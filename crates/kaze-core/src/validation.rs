@@ -13,6 +13,7 @@ pub struct ValidTask {
     pub title: String,
     pub description: String,
     pub subject_id: Option<i64>,
+    pub chapter_id: Option<i64>,
     pub priority: Priority,
     pub due_date: Option<String>,
     pub estimated_minutes: Option<u32>,
@@ -44,6 +45,18 @@ pub fn validate_task(input: &TaskInput) -> AppResult<ValidTask> {
         }
     }
 
+    if let Some(id) = input.chapter_id {
+        if id <= 0 {
+            return Err(AppError::validation("chapterId", "Invalid chapter."));
+        }
+        if input.subject_id.is_none() {
+            return Err(AppError::validation(
+                "chapterId",
+                "Choose a subject before choosing a chapter.",
+            ));
+        }
+    }
+
     let due_date = match input.due_date.as_deref().map(str::trim) {
         None | Some("") => None,
         Some(d) if is_valid_date(d) => Some(d.to_owned()),
@@ -68,6 +81,7 @@ pub fn validate_task(input: &TaskInput) -> AppResult<ValidTask> {
         title: title.to_owned(),
         description: description.to_owned(),
         subject_id: input.subject_id,
+        chapter_id: input.chapter_id,
         priority: input.priority,
         due_date,
         estimated_minutes: input.estimated_minutes,
@@ -141,6 +155,7 @@ mod tests {
             title: title.to_owned(),
             description: String::new(),
             subject_id: None,
+            chapter_id: None,
             priority: Priority::Medium,
             due_date: None,
             estimated_minutes: None,
@@ -224,6 +239,19 @@ mod tests {
             i.estimated_minutes = Some(bad);
             assert_eq!(field_of(validate_task(&i)), "estimatedMinutes");
         }
+    }
+
+    #[test]
+    fn chapter_requires_a_subject_and_a_positive_id() {
+        let mut i = input("t");
+        i.chapter_id = Some(4);
+        assert_eq!(field_of(validate_task(&i)), "chapterId"); // no subject
+        i.subject_id = Some(2);
+        assert_eq!(validate_task(&i).unwrap().chapter_id, Some(4));
+        i.chapter_id = Some(0);
+        assert_eq!(field_of(validate_task(&i)), "chapterId");
+        i.chapter_id = None; // subject without chapter is allowed
+        assert!(validate_task(&i).is_ok());
     }
 
     #[test]

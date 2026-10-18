@@ -3,7 +3,8 @@
 use kaze_core::db::{self, Db};
 use kaze_core::error::AppError;
 use kaze_core::models::{
-    Chapter, ChapterInput, ChapterStatus, Subject, SubjectInput, Task, TaskInput, TaskQuery,
+    Chapter, ChapterInput, ChapterProgressInput, ChapterStatus, Subject, SubjectInput, Task,
+    TaskInput, TaskQuery,
 };
 use kaze_core::{chapters, subjects, tasks};
 use serde::Serialize;
@@ -124,6 +125,15 @@ pub fn update_chapter_status(
     status: ChapterStatus,
 ) -> Result<Chapter, AppError> {
     db.with(|conn| chapters::set_status(conn, id, status))
+}
+
+#[tauri::command]
+pub fn update_chapter_progress(
+    db: State<'_, Db>,
+    id: i64,
+    input: ChapterProgressInput,
+) -> Result<Chapter, AppError> {
+    db.with(|conn| chapters::set_progress(conn, id, &input))
 }
 
 #[tauri::command]

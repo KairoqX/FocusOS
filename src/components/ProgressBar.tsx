@@ -1,12 +1,14 @@
 interface Props {
   percent: number;
   label: string;
+  /** Dashed, empty-looking bar used when there is nothing to measure yet (e.g. no tasks). */
+  empty?: boolean;
 }
 
-export function ProgressBar({ percent, label }: Props) {
+export function ProgressBar({ percent, label, empty = false }: Props) {
   return (
     <div
-      className="progress"
+      className={empty ? "progress progress-empty" : "progress"}
       role="progressbar"
       aria-label={label}
       aria-valuemin={0}

@@ -1,8 +1,10 @@
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import {
   ApiError,
   createTask,
+  listChapters,
   updateTask,
+  type Chapter,
   type Priority,
   type Subject,
   type Task,
@@ -22,6 +24,10 @@ export function TaskForm({ task, subjects, onCancel, onSaved }: Props) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [subjectId, setSubjectId] = useState(task?.subjectId != null ? String(task.subjectId) : "");
+  const [chapterId, setChapterId] = useState(task?.chapterId != null ? String(task.chapterId) : "");
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chaptersLoading, setChaptersLoading] = useState(false);
+  const [chaptersError, setChaptersError] = useState<string | null>(null);
   const [priority, setPriority] = useState<Priority>(task?.priority ?? "medium");
   const [dueDate, setDueDate] = useState(task?.dueDate ?? "");
   const [minutes, setMinutes] = useState(
@@ -31,12 +37,51 @@ export function TaskForm({ task, subjects, onCancel, onSaved }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Chapters are loaded for the selected subject only, so the dropdown can never offer a chapter
+  // from another subject.
+  useEffect(() => {
+    if (subjectId === "") {
+      setChapters([]);
+      setChaptersLoading(false);
+      setChaptersError(null);
+      return;
+    }
+    let cancelled = false;
+    setChaptersLoading(true);
+    setChaptersError(null);
+    listChapters(Number(subjectId))
+      .then((items) => {
+        if (cancelled) return;
+        setChapters(items);
+        // Keep the selection only if it belongs to this subject.
+        setChapterId((cur) => (items.some((c) => String(c.id) === cur) ? cur : ""));
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setChapters([]);
+        setChapterId("");
+        setChaptersError(messageOf(e));
+      })
+      .finally(() => {
+        if (!cancelled) setChaptersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [subjectId]);
+
+  function changeSubject(value: string) {
+    setSubjectId(value);
+    setChapterId(""); // a chapter always belongs to exactly one subject
+  }
+
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const input: TaskInput = {
       title,
       description,
       subjectId: subjectId === "" ? null : Number(subjectId),
+      chapterId: subjectId === "" || chapterId === "" ? null : Number(chapterId),
       priority,
       dueDate: dueDate === "" ? null : dueDate,
       estimatedMinutes: minutes.trim() === "" ? null : Number.parseInt(minutes, 10),
@@ -93,7 +138,7 @@ export function TaskForm({ task, subjects, onCancel, onSaved }: Props) {
       <div className="field-row">
         <div className="field">
           <label htmlFor={`${uid}-subjectId`}>Subject</label>
-          <select {...fieldProps("subjectId")} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+          <select {...fieldProps("subjectId")} value={subjectId} onChange={(e) => changeSubject(e.target.value)}>
             <option value="">No subject</option>
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
@@ -116,6 +161,34 @@ export function TaskForm({ task, subjects, onCancel, onSaved }: Props) {
           </select>
         </div>
       </div>
+
+      {subjectId !== "" && (
+        <div className="field">
+          <label htmlFor={`${uid}-chapterId`}>Chapter</label>
+          <select
+            {...fieldProps("chapterId")}
+            value={chapterId}
+            disabled={chaptersLoading || chapters.length === 0}
+            onChange={(e) => setChapterId(e.target.value)}
+          >
+            <option value="">{chaptersLoading ? "Loading chapters…" : "No chapter"}</option>
+            {chapters.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+          {fieldError("chapterId")}
+          {chaptersError && (
+            <p className="field-error" role="alert">
+              {chaptersError}
+            </p>
+          )}
+          {!chaptersLoading && !chaptersError && chapters.length === 0 && (
+            <p className="muted field-hint">This subject has no chapters yet. Add some on the Subjects screen.</p>
+          )}
+        </div>
+      )}
 
       <div className="field-row">
         <div className="field">

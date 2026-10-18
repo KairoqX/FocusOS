@@ -7,9 +7,11 @@ use crate::validation::validate_task;
 
 // The first `?` is `today` (for the computed `overdue` column); callers pass it first.
 const SELECT: &str = "SELECT t.id, t.title, t.description, t.subject_id, s.name AS subject_name, \
+    t.chapter_id, ch.title AS chapter_title, \
     t.priority, t.due_date, t.estimated_minutes, t.completed_at, t.created_at, t.updated_at, \
     (t.completed_at IS NULL AND t.due_date IS NOT NULL AND t.due_date < ?) AS overdue \
-    FROM tasks t LEFT JOIN subjects s ON s.id = t.subject_id";
+    FROM tasks t LEFT JOIN subjects s ON s.id = t.subject_id \
+    LEFT JOIN chapters ch ON ch.id = t.chapter_id";
 
 fn map_row(row: &Row<'_>) -> rusqlite::Result<Task> {
     let completed_at: Option<String> = row.get("completed_at")?;
@@ -19,6 +21,8 @@ fn map_row(row: &Row<'_>) -> rusqlite::Result<Task> {
         description: row.get("description")?,
         subject_id: row.get("subject_id")?,
         subject_name: row.get("subject_name")?,
+        chapter_id: row.get("chapter_id")?,
+        chapter_title: row.get("chapter_title")?,
         priority: row.get("priority")?,
         due_date: row.get("due_date")?,
         estimated_minutes: row.get("estimated_minutes")?,
@@ -102,13 +106,15 @@ pub fn get(conn: &Connection, id: i64, today: &str) -> AppResult<Task> {
 pub fn create(conn: &Connection, input: &TaskInput, today: &str) -> AppResult<Task> {
     let v = validate_task(input)?;
     ensure_subject_exists(conn, v.subject_id)?;
+    ensure_chapter_matches(conn, v.subject_id, v.chapter_id)?;
     conn.execute(
-        "INSERT INTO tasks (title, description, subject_id, priority, due_date, estimated_minutes) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO tasks (title, description, subject_id, chapter_id, priority, due_date, \
+         estimated_minutes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             v.title,
             v.description,
             v.subject_id,
+            v.chapter_id,
             v.priority.as_str(),
             v.due_date,
             v.estimated_minutes
@@ -120,14 +126,16 @@ pub fn create(conn: &Connection, input: &TaskInput, today: &str) -> AppResult<Ta
 pub fn update(conn: &Connection, id: i64, input: &TaskInput, today: &str) -> AppResult<Task> {
     let v = validate_task(input)?;
     ensure_subject_exists(conn, v.subject_id)?;
+    ensure_chapter_matches(conn, v.subject_id, v.chapter_id)?;
     let changed = conn.execute(
-        "UPDATE tasks SET title = ?1, description = ?2, subject_id = ?3, priority = ?4, \
-         due_date = ?5, estimated_minutes = ?6, \
-         updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?7",
+        "UPDATE tasks SET title = ?1, description = ?2, subject_id = ?3, chapter_id = ?4, \
+         priority = ?5, due_date = ?6, estimated_minutes = ?7, \
+         updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?8",
         params![
             v.title,
             v.description,
             v.subject_id,
+            v.chapter_id,
             v.priority.as_str(),
             v.due_date,
             v.estimated_minutes,
@@ -178,6 +186,35 @@ fn ensure_subject_exists(conn: &Connection, subject_id: Option<i64>) -> AppResul
         }
     }
     Ok(())
+}
+
+/// A chapter may only be linked together with its own subject (also enforced by DB triggers).
+fn ensure_chapter_matches(
+    conn: &Connection,
+    subject_id: Option<i64>,
+    chapter_id: Option<i64>,
+) -> AppResult<()> {
+    let Some(chapter_id) = chapter_id else {
+        return Ok(());
+    };
+    let owner: Option<i64> = conn
+        .query_row(
+            "SELECT subject_id FROM chapters WHERE id = ?1",
+            params![chapter_id],
+            |r| r.get(0),
+        )
+        .optional()?;
+    match owner {
+        None => Err(AppError::validation(
+            "chapterId",
+            "The selected chapter no longer exists.",
+        )),
+        Some(owner) if Some(owner) != subject_id => Err(AppError::validation(
+            "chapterId",
+            "The selected chapter does not belong to the selected subject.",
+        )),
+        Some(_) => Ok(()),
+    }
 }
 
 /// Builds a LIKE pattern matching `term` literally (escapes `%`, `_` and `\`).

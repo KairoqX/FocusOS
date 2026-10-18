@@ -21,6 +21,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "chapters",
         sql: include_str!("../../migrations/0002_chapters.sql"),
     },
+    Migration {
+        version: 3,
+        name: "task_chapters_progress",
+        sql: include_str!("../../migrations/0003_task_chapters_progress.sql"),
+    },
 ];
 
 pub fn latest_version() -> i64 {

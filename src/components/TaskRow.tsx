@@ -27,7 +27,12 @@ export const TaskRow = memo(function TaskRow({ task, busy, onToggle, onEdit, onD
       <div className="task-main">
         <div className="task-title">{task.title}</div>
         <div className="task-meta">
-          {task.subjectName && <span>{task.subjectName}</span>}
+          {task.subjectName && (
+            <span>
+              {task.subjectName}
+              {task.chapterTitle && ` › ${task.chapterTitle}`}
+            </span>
+          )}
           <span className={`prio prio-${task.priority}`}>{PRIORITY_LABEL[task.priority]}</span>
           {task.dueDate && (
             <span className={task.overdue ? "overdue" : undefined}>

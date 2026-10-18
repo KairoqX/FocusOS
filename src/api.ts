@@ -19,6 +19,8 @@ export interface Task {
   description: string;
   subjectId: number | null;
   subjectName: string | null;
+  chapterId: number | null;
+  chapterTitle: string | null;
   priority: Priority;
   dueDate: string | null; // YYYY-MM-DD
   estimatedMinutes: number | null;
@@ -33,6 +35,7 @@ export interface TaskInput {
   title: string;
   description: string;
   subjectId: number | null;
+  chapterId: number | null; // requires subjectId; must belong to that subject
   priority: Priority;
   dueDate: string | null;
   estimatedMinutes: number | null;
@@ -54,10 +57,14 @@ export interface Subject {
   inProgress: number;
   completed: number;
   needsRevision: number;
-  percentComplete: number; // computed in Rust from chapter records
+  chaptersWithoutTasks: number; // automatic-mode chapters with no linked tasks
+  percentComplete: number; // unweighted mean of chapter progress, computed in Rust
   taskCount: number;
   openTasks: number;
+  unassignedTasks: number; // subject tasks not linked to any chapter
 }
+
+export type ProgressMode = "automatic" | "manual";
 
 export type ChapterStatus = "notStarted" | "inProgress" | "completed" | "needsRevision";
 
@@ -66,6 +73,11 @@ export interface Chapter {
   subjectId: number;
   title: string;
   status: ChapterStatus;
+  progressMode: ProgressMode;
+  manualProgress: number; // stored value; only used in manual mode
+  taskTotal: number;
+  taskCompleted: number;
+  progressPercent: number; // effective progress, derived in Rust on every read
   createdAt: string;
   updatedAt: string;
 }
@@ -144,4 +156,9 @@ export const updateChapter = (id: number, title: string) =>
   call<Chapter>("update_chapter", { id, input: { title } });
 export const updateChapterStatus = (id: number, status: ChapterStatus) =>
   call<Chapter>("update_chapter_status", { id, status });
+export const updateChapterProgress = (
+  id: number,
+  mode: ProgressMode,
+  manualProgress: number | null,
+) => call<Chapter>("update_chapter_progress", { id, input: { mode, manualProgress } });
 export const deleteChapter = (id: number) => call<void>("delete_chapter", { id });

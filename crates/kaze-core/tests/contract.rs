@@ -1,8 +1,8 @@
 //! Locks the JSON shapes the TypeScript frontend depends on.
 use kaze_core::error::AppError;
 use kaze_core::models::{
-    Chapter, ChapterInput, ChapterStatus, Priority, Subject, SubjectInput, Task, TaskInput,
-    TaskQuery, TaskSort, TaskView,
+    Chapter, ChapterInput, ChapterProgressInput, ChapterStatus, Priority, ProgressMode, Subject,
+    SubjectInput, Task, TaskInput, TaskQuery, TaskSort, TaskView,
 };
 use serde_json::json;
 
@@ -52,6 +52,8 @@ fn task_serializes_camel_case() {
         description: String::new(),
         subject_id: Some(2),
         subject_name: Some("S".into()),
+        chapter_id: Some(3),
+        chapter_title: Some("C".into()),
         priority: Priority::High,
         due_date: Some("2025-01-01".into()),
         estimated_minutes: Some(10),
@@ -65,6 +67,8 @@ fn task_serializes_camel_case() {
     for key in [
         "subjectId",
         "subjectName",
+        "chapterId",
+        "chapterTitle",
         "dueDate",
         "estimatedMinutes",
         "completedAt",
@@ -115,9 +119,11 @@ fn subject_and_chapter_shapes() {
         in_progress: 1,
         completed: 1,
         needs_revision: 1,
+        chapters_without_tasks: 1,
         percent_complete: 25,
         task_count: 3,
         open_tasks: 2,
+        unassigned_tasks: 1,
     };
     let v = serde_json::to_value(&s).unwrap();
     for key in [
@@ -129,6 +135,8 @@ fn subject_and_chapter_shapes() {
         "percentComplete",
         "taskCount",
         "openTasks",
+        "chaptersWithoutTasks",
+        "unassignedTasks",
     ] {
         assert!(v.get(key).is_some(), "missing key {key}");
     }
@@ -137,6 +145,11 @@ fn subject_and_chapter_shapes() {
         subject_id: 2,
         title: "t".into(),
         status: ChapterStatus::InProgress,
+        progress_mode: ProgressMode::Manual,
+        manual_progress: 70,
+        task_total: 4,
+        task_completed: 1,
+        progress_percent: 70,
         created_at: "c".into(),
         updated_at: "u".into(),
     };
@@ -149,4 +162,59 @@ fn subject_and_chapter_shapes() {
     let si: SubjectInput = serde_json::from_value(json!({"name": "x"})).unwrap();
     let ci: ChapterInput = serde_json::from_value(json!({"title": "y"})).unwrap();
     assert_eq!((si.name.as_str(), ci.title.as_str()), ("x", "y"));
+}
+
+#[test]
+fn chapter_progress_wire_format() {
+    let c = Chapter {
+        id: 1,
+        subject_id: 2,
+        title: "t".into(),
+        status: ChapterStatus::NotStarted,
+        progress_mode: ProgressMode::Automatic,
+        manual_progress: 0,
+        task_total: 0,
+        task_completed: 0,
+        progress_percent: 0,
+        created_at: "c".into(),
+        updated_at: "u".into(),
+    };
+    let v = serde_json::to_value(&c).unwrap();
+    for key in [
+        "progressMode",
+        "manualProgress",
+        "taskTotal",
+        "taskCompleted",
+        "progressPercent",
+    ] {
+        assert!(v.get(key).is_some(), "missing key {key}");
+    }
+    assert_eq!(v["progressMode"], "automatic");
+    assert_eq!(
+        serde_json::to_value(ProgressMode::Manual).unwrap(),
+        json!("manual")
+    );
+    assert!(serde_json::from_value::<ProgressMode>(json!("auto")).is_err());
+
+    let with: ChapterProgressInput =
+        serde_json::from_value(json!({"mode": "manual", "manualProgress": 40})).unwrap();
+    assert_eq!(
+        (with.mode, with.manual_progress),
+        (ProgressMode::Manual, Some(40))
+    );
+    let without: ChapterProgressInput =
+        serde_json::from_value(json!({"mode": "automatic"})).unwrap();
+    assert_eq!(without.manual_progress, None);
+}
+
+#[test]
+fn task_input_accepts_chapter_id() {
+    let i: TaskInput = serde_json::from_value(json!({
+        "title": "x", "priority": "low", "subjectId": 1, "chapterId": 5
+    }))
+    .unwrap();
+    assert_eq!((i.subject_id, i.chapter_id), (Some(1), Some(5)));
+    let legacy: TaskInput =
+        serde_json::from_value(json!({"title": "x", "priority": "low"})).unwrap();
+    assert_eq!(legacy.chapter_id, None);
 }

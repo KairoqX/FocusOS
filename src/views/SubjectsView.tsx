@@ -8,10 +8,12 @@ import {
   listChapters,
   listSubjects,
   updateChapter,
+  updateChapterProgress,
   updateChapterStatus,
   updateSubject,
   type Chapter,
   type ChapterStatus,
+  type ProgressMode,
   type Subject,
 } from "../api";
 import { AddChapterForm } from "../components/AddChapterForm";
@@ -88,6 +90,20 @@ export function SubjectsView() {
       setBusyChapterId(chapter.id);
       try {
         await updateChapterStatus(chapter.id, status);
+      } catch (e) {
+        setError(messageOf(e));
+      } finally {
+        setBusyChapterId(null);
+        refresh();
+      }
+    },
+    [refresh],
+  );
+  const changeProgress = useCallback(
+    async (chapter: Chapter, mode: ProgressMode, manualProgress: number | null) => {
+      setBusyChapterId(chapter.id);
+      try {
+        await updateChapterProgress(chapter.id, mode, manualProgress);
       } catch (e) {
         setError(messageOf(e));
       } finally {
@@ -200,11 +216,11 @@ export function SubjectsView() {
                     onClick={() => setSelectedId(s.id)}
                   >
                     <span className="subject-name">{s.name}</span>
-                    <ProgressBar percent={s.percentComplete} label={`${s.name} progress`} />
+                    <ProgressBar percent={s.percentComplete} empty={s.chapterCount === 0} label={`${s.name} progress`} />
                     <span className="muted subject-sub">
                       {s.chapterCount === 0
                         ? "No chapters"
-                        : `${s.completed}/${plural(s.chapterCount, "chapter")} · ${s.percentComplete}%`}
+                        : `${plural(s.chapterCount, "chapter")} · ${s.percentComplete}% overall`}
                     </span>
                   </button>
                 </li>
@@ -229,19 +245,28 @@ export function SubjectsView() {
               <div className="summary">
                 <div className="summary-percent">{selected.percentComplete}%</div>
                 <div className="summary-main">
-                  <ProgressBar percent={selected.percentComplete} label={`${selected.name} completion`} />
+                  <ProgressBar
+                    percent={selected.percentComplete}
+                    empty={selected.chapterCount === 0}
+                    label={`${selected.name} overall progress`}
+                  />
                   <p className="muted">
                     {selected.chapterCount === 0
                       ? "Add chapters to start tracking progress."
-                      : `${selected.completed} of ${plural(selected.chapterCount, "chapter")} completed`}
+                      : `Overall progress: the average of ${plural(selected.chapterCount, "chapter")}' progress.`}
                   </p>
                   <p className="muted breakdown">
-                    {selected.notStarted} not started · {selected.inProgress} in progress ·{" "}
-                    {selected.needsRevision} needs revision
+                    {selected.taskCount - selected.openTasks} of {plural(selected.taskCount, "task")} completed
+                    {selected.unassignedTasks > 0 &&
+                      ` · ${plural(selected.unassignedTasks, "task")} not in a chapter (not counted in chapter progress)`}
                   </p>
-                  <p className="muted breakdown">
-                    {plural(selected.openTasks, "open task")} of {plural(selected.taskCount, "task")}
-                  </p>
+                  {selected.chapterCount > 0 && (
+                    <p className="muted breakdown">
+                      {selected.needsRevision === 0 && selected.chaptersWithoutTasks === 0
+                        ? "Nothing needs attention."
+                        : `Needs attention: ${selected.needsRevision} marked needs revision · ${selected.chaptersWithoutTasks} without tasks`}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -264,6 +289,7 @@ export function SubjectsView() {
                       chapter={c}
                       busy={busyChapterId === c.id}
                       onStatus={changeStatus}
+                      onProgress={changeProgress}
                       onRename={renameChapter}
                       onDelete={askDeleteChapter}
                     />

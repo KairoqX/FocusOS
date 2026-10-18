@@ -34,6 +34,7 @@ fn task_for(c: &Connection, title: &str, subject_id: i64) -> i64 {
         title: title.into(),
         description: String::new(),
         subject_id: Some(subject_id),
+        chapter_id: None,
         priority: Priority::Medium,
         due_date: None,
         estimated_minutes: None,
@@ -121,7 +122,7 @@ fn empty_subject_has_zero_progress() {
 }
 
 #[test]
-fn progress_is_computed_from_chapter_records() {
+fn status_counts_come_from_chapter_records() {
     let c = conn();
     let s = subject(&c, "Biology");
     chapter(&c, s.id, "Cells", ChapterStatus::Completed);
@@ -141,26 +142,13 @@ fn progress_is_computed_from_chapter_records() {
         ),
         (1, 1, 2, 1)
     );
-    assert_eq!(got.percent_complete, 40);
+    // Status is the user's label; progress comes from tasks, and there are none yet.
+    assert_eq!((got.percent_complete, got.chapters_without_tasks), (0, 5));
 
-    // Moving a completed chapter to "needs revision" lowers progress.
     let cells = chapters::list(&c, s.id).unwrap()[0].id;
     chapters::set_status(&c, cells, ChapterStatus::NeedsRevision).unwrap();
     let got = subjects::get(&c, s.id).unwrap();
-    assert_eq!(
-        (got.completed, got.needs_revision, got.percent_complete),
-        (1, 2, 20)
-    );
-}
-
-#[test]
-fn percentages_round_to_whole_numbers() {
-    let c = conn();
-    let s = subject(&c, "Math");
-    chapter(&c, s.id, "A", ChapterStatus::Completed);
-    chapter(&c, s.id, "B", ChapterStatus::NotStarted);
-    chapter(&c, s.id, "C", ChapterStatus::NotStarted);
-    assert_eq!(subjects::get(&c, s.id).unwrap().percent_complete, 33);
+    assert_eq!((got.completed, got.needs_revision), (1, 2));
 }
 
 #[test]
@@ -177,8 +165,8 @@ fn list_summaries_are_independent_per_subject_and_sorted_by_name() {
         all.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(),
         ["Alpha", "zed"]
     );
-    assert_eq!((all[0].chapter_count, all[0].percent_complete), (2, 0));
-    assert_eq!((all[1].chapter_count, all[1].percent_complete), (1, 100));
+    assert_eq!((all[0].chapter_count, all[0].completed), (2, 0));
+    assert_eq!((all[1].chapter_count, all[1].completed), (1, 1));
 }
 
 #[test]
@@ -315,15 +303,16 @@ fn missing_records_report_not_found() {
 }
 
 #[test]
-fn deleting_a_chapter_updates_progress() {
+fn deleting_a_chapter_updates_subject_counts() {
     let c = conn();
     let s = subject(&c, "S");
     let done = chapter(&c, s.id, "Done", ChapterStatus::Completed);
     chapter(&c, s.id, "Todo", ChapterStatus::NotStarted);
-    assert_eq!(subjects::get(&c, s.id).unwrap().percent_complete, 50);
+    let before = subjects::get(&c, s.id).unwrap();
+    assert_eq!((before.chapter_count, before.completed), (2, 1));
     chapters::delete(&c, done).unwrap();
     let got = subjects::get(&c, s.id).unwrap();
-    assert_eq!((got.chapter_count, got.percent_complete), (1, 0));
+    assert_eq!((got.chapter_count, got.completed), (1, 0));
 }
 
 #[test]

@@ -105,3 +105,61 @@ fn upgrading_a_v1_database_keeps_existing_data() {
         .unwrap();
     assert_eq!(n, 1);
 }
+
+#[test]
+fn upgrading_a_v2_database_preserves_everything_and_defaults_to_automatic() {
+    // A database as created by Milestone 3 (schema version 2).
+    let mut conn = Connection::open_in_memory().unwrap();
+    conn.execute_batch("PRAGMA foreign_keys = ON").unwrap();
+    conn.execute_batch(include_str!("../migrations/0001_init.sql"))
+        .unwrap();
+    conn.execute_batch(include_str!("../migrations/0002_chapters.sql"))
+        .unwrap();
+    conn.execute_batch("PRAGMA user_version = 2").unwrap();
+    conn.execute("INSERT INTO subjects (name) VALUES ('Bio')", [])
+        .unwrap();
+    conn.execute(
+        "INSERT INTO chapters (subject_id, title, status) VALUES (1, 'Cells', 'completed')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO tasks (title, subject_id) VALUES ('Subject task', 1)",
+        [],
+    )
+    .unwrap();
+    conn.execute("INSERT INTO tasks (title) VALUES ('Loose task')", [])
+        .unwrap();
+
+    db::run_migrations(&mut conn).unwrap();
+
+    assert_eq!(db::schema_version(&conn).unwrap(), db::latest_version());
+    let tasks: Vec<(String, Option<i64>, Option<i64>)> = conn
+        .prepare("SELECT title, subject_id, chapter_id FROM tasks ORDER BY id")
+        .unwrap()
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(
+        tasks,
+        [
+            ("Subject task".to_owned(), Some(1), None),
+            ("Loose task".to_owned(), None, None)
+        ]
+    );
+    let (status, mode, manual): (String, String, i64) = conn
+        .query_row(
+            "SELECT status, progress_mode, manual_progress FROM chapters",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        (status.as_str(), mode.as_str(), manual),
+        ("completed", "automatic", 0)
+    );
+
+    let mut stmt = conn.prepare("PRAGMA foreign_key_check").unwrap();
+    assert!(stmt.query([]).unwrap().next().unwrap().is_none());
+}

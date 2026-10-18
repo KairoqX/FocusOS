@@ -32,6 +32,7 @@ pub fn run() {
             commands::create_chapter,
             commands::update_chapter,
             commands::update_chapter_status,
+            commands::update_chapter_progress,
             commands::delete_chapter,
         ])
         .run(tauri::generate_context!())

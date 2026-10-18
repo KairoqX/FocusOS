@@ -1,4 +1,7 @@
 # Kaze Study
+<p align="center">
+  <img src="assets/kaze-study.png" alt="Kaze Study Banner" width="100%">
+</p>
 
 Offline-first study workspace. Tauri 2 + Rust backend, React + TypeScript + Vite frontend, SQLite storage.
 
